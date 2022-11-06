@@ -24,3 +24,13 @@ In this kata, you are asked to square every digit of a number and concatenate th
 For example, if we run 9119 through the function, 811181 will come out, because 92 is 81 and 12 is 1.
 
 Note: The function accepts an integer and returns an integer
+
+## Unique in Order
+Implement the function unique_in_order which takes as argument a sequence and returns a list of items without any elements with the same value next to each other and preserving the original order of elements.
+
+For example:
+```
+uniqueInOrder("AAAABBBCCDAABBB") == {'A', 'B', 'C', 'D', 'A', 'B'}
+uniqueInOrder("ABBCcAD")         == {'A', 'B', 'C', 'c', 'A', 'D'}
+uniqueInOrder([1,2,2,3,3])       == {1,2,3}
+```
