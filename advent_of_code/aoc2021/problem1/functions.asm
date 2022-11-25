@@ -7,7 +7,6 @@
 
 ; calculates the length of a string in rdi, and stores the result in rdx
 strlen:
-
           mov       rdx, rdi
 
 .next_char:
@@ -89,8 +88,7 @@ sprint:
           push      rdx
 
           call      strlen
-          mov       rsi, rdi                ; move the string pointer to rax
-                                            ; so we can strlen on it
+          mov       rsi, rdi                ; move the string pointer to rax so we can strlen on it
           mov       rax, SYS_WRITE
           mov       rdi, STDOUT
 
