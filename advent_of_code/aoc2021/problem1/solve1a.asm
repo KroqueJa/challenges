@@ -12,7 +12,7 @@
         NEWLINE equ 10
         SYS_CLOSE equ 3
 
-        FSIZE equ 2000000                 ; define the approximate size of the file we're reading
+        FSIZE equ 14000                 ; define the approximate size of the file we're reading
 
 ; define an error message to print if a filename isn't passed
 err_msg_argc:
@@ -20,9 +20,8 @@ err_msg_argc:
 
         section .bss
 
-        fd_in resd 1                    ; reserve one word for the file descriptor
         file_buf resb FSIZE             ; we'll make it easy on ourselves and read the whole file into a file_buffer
-        numbers resw 2000000            ; reserve 2 Mb for numbers
+        numbers resw 14000              ; reserve 14 Kb for numbers
 
         section .text
         global _start
