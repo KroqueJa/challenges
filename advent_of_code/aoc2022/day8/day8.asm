@@ -175,15 +175,3 @@ finished:
           mov       rax, SYS_EXIT
           mov       rdi, 0
           syscall
-
-; ============================================================================
-          mov       rax, r8
-          mul       r9
-          mul       r10
-          mul       r11
-
-          cmp       rax, r13
-          jle       no_new_max
-
-          mov       r13, rax
-
