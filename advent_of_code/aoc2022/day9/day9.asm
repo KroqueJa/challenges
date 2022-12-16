@@ -1,5 +1,7 @@
 %include 'print.asm'
+%include 'rope.asm'
 
+extern malloc, free
 
 ; macros
           SYS_READ      equ 0
@@ -12,223 +14,180 @@
           SYS_CLOSE     equ 3
           FSIZE         equ 8500
 
-          ARRAY_SZ      equ 100000000
-          H_OFFSET_B    equ 0x10
+; our knot specification is
+; 1 Qword address of parent
+; 1 Dword x coordinate
+; 1 Dword y coordinate
+; 1 Dword prev_x
+; 1 Dword prev_y
+; 1 Byte is_last
+; 1 Qword address to child
+; total size == 25 bytes
 
-          START         equ 10000000
+          PARENT        equ 0
+          X             equ 8
+          Y             equ 12
+          CHILD         equ 16
+
+          SIZEOF_KNOT   equ 24
+
+; we will use a 3050 x 3050 grid as this is enough to hold the entire problem space
+
+          W             equ 400
+          H             equ 400
+
+; finally, we will start on square 1500, 1500
+          START_X       equ 200
+          START_Y       equ 200
+
+          section   .data
+x_str:
+          db        'x: '
+y_str:
+          db        'y: '
+
+last_str:
+          db        'is_last: '
 
           section   .bss
 
 file_buf:
           resb      FSIZE
 
-visited:
-          resb      ARRAY_SZ
+bytes_read:
+          resq      1
+
+head:
+          resq      1
+
+last:
+          resq      1
+
+grid:
+          resb      W * H
 
           section   .text
           global    _start
 
 _start:
 
+io:
 ; read the filename from the command line
           pop       rcx
-          pop       rdi
-          pop       rdi
+          pop       rsi
+          pop       rsi
 
-; open the input file
-          mov       rax, SYS_OPEN
-          mov       rsi, O_RDONLY
-          mov       rdx, 0644o
-          syscall
+; read the file
 
-; read the file into the file_buffer
-          mov       rdi, rax
-          mov       rax, SYS_READ
-          mov       rsi, file_buf
-          mov       rdx, FSIZE
-          syscall
+          mov       rdi, file_buf
+          call      read_file
+          mov       Qword [bytes_read], rax
 
-; store the amount of bytes read
-          mov       r15, rax
-          add       r15, file_buf
-
-; close the file
-          mov       rax, SYS_CLOSE
-          syscall
-
-; === solve the problem ===
-
-          mov       rcx, 0xA
-          xor       rdx, rdx
-          mov       rbx, file_buf
-          dec       rbx
-
-          mov       rdi, START                    ; head coordinates (higher bytes for x, lower bytes for y)
-          mov       rsi, START                    ; tail coordinates
-          mov       Byte [visited + rsi], 0x1     ; the tail has been where the tail starts
-
-parse_cmd:
-          inc       rbx
-          cmp       rbx, r15
-          jge       all_done                      ; we are all done
-
-          mov       dl, byte [rbx]
-          add       rbx, 2
-          xor       r8, r8
           xor       rax, rax
-atoi:
-          push      rdx                           ; mul clobbers rdx
-          mul       rcx
+; read the amount of knots to create from the command line
+          pop       rdi
+          call      atoi
+          push      rax                                   ; save the amount of knots for a sec
+
+init:
+; create the head knot
+          mov       rdi, SIZEOF_KNOT
+          call      malloc
+          mov       Qword [head], rax                     ; save the pointer to the allocated memory in [head]
+          xor       r12, r12                              ; r12 can keep track of our total
+
+          mov       Dword [rax + X], START_X
+          mov       Dword [rax + Y], START_Y
+
+          mov       rdi, [head]
+
+; create the chain of child knots
+          pop       rsi                                   ; pop the amount of knots into rsi
+          dec       rsi                                   ; decrement rsi as we've already created the head
+          call      create_chain
+
+; record the position of the last knot
+          mov       rdi, [head]
+          call      find_last
+          mov       [last], rax
+
+; start moving the head around
+          xor       rbx, rbx
+          xor       rcx, rcx
+          xor       rsi, rsi
+
+parse_loop:
+
+          xor       rax, rax
+          mov       sil, Byte [file_buf + rcx]              ; rsi now holds the direction to move
+          add       rcx, 0x2
+
+input_atoi:
+          push      rcx
+          push      rdx
+          mov       rdx, 0xA
+          mul       rdx
           pop       rdx
-          mov       r8b, Byte [rbx]
-          sub       r8, 0x30
-          add       rax, r8
-          inc       rbx                           ; this increment is enough, as the increment at the start of the loop will check if we're all done
-          cmp       Byte [rbx], 0xA
-          jne       atoi
+          pop       rcx
+          mov       bl, Byte [file_buf + rcx]
+          sub       rbx, 0x30
+          add       rax, rbx
+          inc       rcx
+          cmp       Byte[file_buf + rcx], 0xA
+          jne       input_atoi
+          inc       rcx                                     ; rcx is now ready at the start of the next line
 
-          mov       rcx, rax                      ; use rcx as a counter for the next part, we need rax to check bools
-
-; after the above, rdi and rsi should contain the (new) head and the tail coordinate respective, rdx the direction and rcx the number of steps to move
+          mov       rdx, rax                                ; load rdx with the number of steps to move
 
 move_loop:
+          mov       rdi, [head]
           call      move
-          cmp       rax, 0x1
-          jne       no_tail_move
 
-          xor       rax, rax
-          mov       al, Byte [visited + rsi]
-          inc       rax
-          mov       Byte [visited + rsi], al
+record_last:
 
-no_tail_move:
-          dec       rcx
-          cmp       rcx, 0x0
+          push      rdi
+          push      rcx
+          push      rdx
+
+          mov       rdi, [last]
+          xor       r8, r8
+          xor       r9, r9
+          mov       r8d, Dword [rdi + X]
+          mov       r9d, Dword [rdi + Y]
+
+          mov       rdi, grid
+          mov       rax, r9
+          mov       r10, W
+          mul       r10
+          add       rdi, rax
+          add       rdi, r8
+
+          cmp       Byte [rdi], 0x0
+          jg        no_inc
+          inc       Byte [rdi]
+
+          inc       r12
+
+no_inc:
+          pop       rdx
+          pop       rcx
+          pop       rdi
+
+
+          dec       rdx
+          cmp       rdx, 0x0
           jne       move_loop
 
-          jmp       parse_cmd
+          cmp       rcx, [bytes_read]
+          jl        parse_loop
 
-all_done:
-          mov       rcx, ARRAY_SZ                      ; iterator
-          xor       rdi, rdi                      ; counter (the sought sum)
-
-count_tail_moves:
-          cmp       Byte [visited + rcx], 0x0
-          je        no_inc
-
-          inc       rdi
-no_inc:
-          dec       rcx
-          cmp       rcx, 0x0
-          jl        count_tail_moves
-
+          mov       rdi, r12
           call      uprintln
 
-; exit the program
-          mov       rax, SYS_EXIT
+free_rope:
+          mov       rdi, [head]
+          call      destroy_rope
+
+
           mov       rdi, 0x0
-          syscall
-
-; ===
-; function to move the head in rdi and possibly the tail in rsi one step. Rax contains a 1 if the tail was moved, a 0 otherwise.
-move:
-          xor       r13, r13
-          cmp       rdx, 0x55
-          je        .up
-          cmp       rdx, 0x4c
-          je        .left
-          cmp       rdx, 0x44
-          je        .down
-
-          mov       r14, rdi                      ; save current position if we need to move the tail
-.right:
-          mov       r13, 0x1
-          shl       r13, H_OFFSET_B
-          add       rdi, r13
-
-          call      adjacent
-          cmp       rax, 0x1
-          je        .move_done
-
-          mov       rsi, r14                      ; move the tail to where we just were
-          mov       r13, 0x1                      ; record that we did
-          jmp       .move_done
-.up:
-          add       rdi, 0x1
-          call      adjacent
-          cmp       rax, 0x1
-          je        .move_done
-
-          mov       rsi, r14                      ; move the tail to where we just were
-          mov       r13, 0x1                      ; record that we did
-          jmp       .move_done
-.down:
-          sub       rdi, 0x1
-          call      adjacent
-          cmp       rax, 0x1
-          je        .move_done
-
-          mov       rsi, r14                      ; move the tail to where we just were
-          mov       r13, 0x1                      ; record that we did
-          jmp       .move_done
-.left:
-          mov       r13, 0x1
-          shl       r13, H_OFFSET_B
-          sub       rdi, r13
-
-          call      adjacent
-          cmp       rax, 0x1
-          je        .move_done
-
-          mov       rsi, r14                      ; move the tail to where we just were
-          mov       r13, 0x1                      ; record that we did
-
-
-.move_done:
-          mov       rax, r13
-
-          ret
-
-; function to check if the tail in rsi is adjacent to the head in rdi (result in rax)
-adjacent:
-          xor       rax, rax
-          mov       r8, rdi                       ; head_x
-          mov       r9, rdi                       ; head_y
-          mov       r10, rsi                      ; tail_x
-          mov       r11, rsi                      ; tail_y
-
-          shr       r8, H_OFFSET_B                ; extract the x coordinates
-          shr       r10, H_OFFSET_B
-
-          and       r9, 0xFF                      ; extract the y coordinates
-          and       r11, 0xFF
-
-          sub       r8, r10                       ; take the differences between the coordinates
-          sub       r9, r11
-
-
-;  abs(x) = (x xor y) - y  | where y = x >>> 63(64 bit implementation)
-.abs:
-          mov       r12, r8
-          shr       r12, 0x3f
-          xor       r8, r12
-          sub       r8, r12
-
-          mov       r12, r9
-          shr       r12, 0x3f
-          xor       r9, r12
-          sub       r9, r12
-
-; r8 = |head_x - tail_x| 
-; r9 = |head_y - tail_y|
-
-          cmp       r8, 0x1
-          jg        .false
-          cmp       r9, 0x1
-          jg        .false
-
-          mov       rax, 0x1
-
-.false:
-          ret
-
+          call      exit
