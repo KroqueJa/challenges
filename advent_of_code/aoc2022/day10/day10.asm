@@ -16,9 +16,6 @@
 file_buf:
           resb      FSIZE
 
-cycles:
-          resw      300
-
 bytes_read:
           resq      1
 
@@ -40,32 +37,82 @@ io:
           mov       Qword [bytes_read], rax
 
 init:
-          xor       rax, rax                          ; read register
-          xor       rbx, rbx                          ; input file iterator (and cycle enumerator, if 1 is added to it)
-          xor       rdx, rdx                          ; cycles iterator
+          xor       rbx, rbx                                ; input file iterator
+          xor       r8, r8                                  ; our sum
+          xor       rdi, rdi                                ; cycle enumerator
+          mov       rsi, 0x14                               ; our first target cycle for part 1
 
-          mov       r15, 0x1                          ; our 'X' register
+          mov       r14, 0x1                                ; previous value of 'X' register (for when we land past a target cycle)
+          mov       r15, 0x1                                ; our 'X' register (and sprite position)
+
+; === part 2 ===
+
 
 parse_loop:
-          cmp       Qword [bytes_read], rbx
-          je        done
+          cmp       rbx, Qword [bytes_read]
+          jge       done
 
-
-
-          cmp       Qword [file_buf + rbx], 0x61      ; 'a'
-          jne       noop
-
-          
+          inc       rdi
+          cmp       Byte [file_buf + rbx], 0x61             ; 'a'
+          je        addx
 
 noop:
+          mov       r11, 0x0
+          add       rbx, 0x5
+          jmp       check
 
+addx:
+          mov       r11, 0x1
+          inc       rdi
+          xor       rax, rax
+          mov       r12, 0xa
+          add       rbx, 0x5
+          xor       r13, r13
+          cmp       Byte [file_buf + rbx], 0x2d               ; '-'
+          jne       atoi
+          mov       r13, 0x1
+          inc       rbx
+
+atoi:
+          mul       r12
+          add       al, Byte [file_buf + rbx]
+          sub       rax, 0x30
+          inc       rbx
+          cmp       Byte [file_buf + rbx], 0xa
+          jne       atoi
+
+          inc       rbx
+
+          cmp       r13, 0x1
+          jne       update_x
+
+          neg       rax
+
+update_x:
+          mov       r14, r15                                  ; update previous value of 'X'
+          add       r15, rax                                  ; add the new value to 'X'
+
+check:
+          cmp       rdi, rsi
+          jl        parse_loop
+
+          mov       rax, r15
+
+          cmp       r11, 0x1
+          cmove     rax, r14
+
+          mul       rsi
+          add       r8, rax
+
+          add       rsi, 0x28                                 ; update the target cycle
+          jmp       parse_loop
 done:
-
+          mov       rdi, r8
+          call      uprintln
 
           mov       rax, SYS_EXIT
           mov       rdi, 0x0
           syscall
-
 
 
 
