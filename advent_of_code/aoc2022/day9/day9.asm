@@ -20,9 +20,8 @@ extern malloc, free
 ; 1 Dword y coordinate
 ; 1 Dword prev_x
 ; 1 Dword prev_y
-; 1 Byte is_last
 ; 1 Qword address to child
-; total size == 25 bytes
+; total size == 24 bytes
 
           PARENT        equ 0
           X             equ 8
@@ -45,9 +44,6 @@ x_str:
           db        'x: '
 y_str:
           db        'y: '
-
-last_str:
-          db        'is_last: '
 
           section   .bss
 
