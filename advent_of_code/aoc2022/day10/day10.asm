@@ -276,7 +276,7 @@ get_chars:
         je          .double
 
 .single:
-        shr         rax, 0x8                        ; throw away the rightmost byte
+        and         rax, 0xFF                      ; throw away the leftmost byte
 
 .double:
 
