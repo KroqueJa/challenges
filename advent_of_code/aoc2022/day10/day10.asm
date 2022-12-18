@@ -11,6 +11,9 @@
           SYS_CLOSE     equ 3
           FSIZE         equ 970
 
+          DISPLAY_W     equ 40
+          DISPLAY_H     equ 6
+
           section   .bss
 
 file_buf:
@@ -18,6 +21,9 @@ file_buf:
 
 bytes_read:
           resq      1
+
+output_buf:
+          resb      DISPLAY_W * DISPLAY_H
 
           section   .text
           global    _start
@@ -45,10 +51,8 @@ init:
           mov       r14, 0x1                                ; previous value of 'X' register (for when we land past a target cycle)
           mov       r15, 0x1                                ; our 'X' register (and sprite position)
 
-; === part 2 ===
-
-
 parse_loop:
+          mov       r14, r15                                  ; update previous value of 'X'
           cmp       rbx, Qword [bytes_read]
           jge       done
 
@@ -57,12 +61,12 @@ parse_loop:
           je        addx
 
 noop:
-          mov       r11, 0x0
+          mov       r11, 0x1
           add       rbx, 0x5
           jmp       check
 
 addx:
-          mov       r11, 0x1
+          mov       r11, 0x2
           inc       rdi
           xor       rax, rax
           mov       r12, 0xa
@@ -89,16 +93,55 @@ atoi:
           neg       rax
 
 update_x:
-          mov       r14, r15                                  ; update previous value of 'X'
           add       r15, rax                                  ; add the new value to 'X'
 
 check:
+; === part 2 ===
+
+set:
+          push      rsi
+          push      rdi
+
+mod_loop:
+          cmp       rdi, 40
+          jl        mod_done
+          sub       rdi, 40
+          jmp       mod_loop
+
+mod_done:
+
+          mov       rsi, r15
+          cmp       r11, 0x2
+          cmove     rsi, r14
+
+          mov       rdx, r11
+
+          call      get_chars
+
+          pop       rdi
+          pop       rsi
+
+          cmp       r11, 0x2
+          jne       set_single_byte
+
+set_two_bytes:
+          bswap     eax                                       ; put the bytes in little endian order before writing them
+          shr       rax, 0x10                                 ; shift the bytes right 16 bits
+          mov       Word [output_buf + rdi - 2], ax           ; put two bytes into the correct place
+          jmp       set_done
+
+set_single_byte:
+          mov       Byte [output_buf + rdi - 1], al
+
+; === part 2 ===
+
+set_done:
           cmp       rdi, rsi
           jl        parse_loop
 
           mov       rax, r15
 
-          cmp       r11, 0x1
+          cmp       r11, 0x2
           cmove     rax, r14
 
           mul       rsi
@@ -106,15 +149,139 @@ check:
 
           add       rsi, 0x28                                 ; update the target cycle
           jmp       parse_loop
+
 done:
           mov       rdi, r8
           call      uprintln
+
+          call      br
+
+          mov       rdi, output_buf
+          call      display
 
           mov       rax, SYS_EXIT
           mov       rdi, 0x0
           syscall
 
 
+; ===================================================================
+; function to draw the output buffer in rdi
+display:
+          push      rax
+          push      rdx
+          push      rdi
+          push      rsi
+          push      r15
+
+          mov       r15, rdi
+
+          mov       rsi, r15
+          mov       rdi, STDOUT
+          mov       rax, SYS_WRITE
+          mov       rdx, 0x28
+          syscall
+          call      br
+
+          mov       rsi, r15
+          add       rsi, 40
+          mov       rdi, STDOUT
+          mov       rax, SYS_WRITE
+          mov       rdx, 0x28
+          syscall
+          call      br
+
+          mov       rsi, r15
+          add       rsi, 80
+          mov       rdi, STDOUT
+          mov       rax, SYS_WRITE
+          mov       rdx, 0x28
+          syscall
+          call      br
+
+          mov       rsi, r15
+          add       rsi, 120
+          mov       rdi, STDOUT
+          mov       rax, SYS_WRITE
+          mov       rdx, 0x28
+          syscall
+          call      br
+
+          mov       rsi, r15
+          add       rsi, 160
+          mov       rdi, STDOUT
+          mov       rax, SYS_WRITE
+          mov       rdx, 0x28
+          syscall
+          call      br
+
+          mov       rsi, r15
+          add       rsi, 200
+          mov       rdi, STDOUT
+          mov       rax, SYS_WRITE
+          mov       rdx, 0x28
+          syscall
+          call      br
+
+          pop       r15
+          pop       rsi
+          pop       rdx
+          pop       rdi
+          pop       rsi
+          ret
+
+
+; ===================================================================
+; function to produce one or two bytes in big endian order to be put into an output buffer
+; inputs
+; rdi: instruction number
+; rsi: sprite position
+; rdx: 1 or 2 (amount of bytes to get)
+; outputs
+; rax: one or two bytes for the output buffer (in big endian)
+
+get_chars:
+
+        push        rdi
+
+        dec         rdi
+        sub         rdi, rsi                        ; find difference between rdi and rsi
+
+        cmp         rdi, 0xFFFFFFFFFFFFFFFF         ; check if the diff is -1
+        jl          .dotdot                         ; if it is even less, return ..
+        je          .dothash                        ; if it is exactly -1, return .#
+
+        cmp         rdi, 0x2
+        je          .hashdot
+
+        cmp         rdi, 0x3
+        jge         .dotdot
+
+.hashhash:
+        mov         rax, 0x2323
+        jmp         .check
+
+.hashdot:
+        mov         rax, 0x232e
+        jmp         .check
+
+.dothash:
+        mov         rax, 0x2e23
+        jmp         .check
+
+.dotdot:
+        mov         rax, 0x2e2e
+
+.check:
+        cmp         rdx, 0x2
+        je          .double
+
+.single:
+        shr         rax, 0x8                        ; throw away the rightmost byte
+
+.double:
+
+        pop         rdi
+        ret
 
 
 ; ===================================================================
