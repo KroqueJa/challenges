@@ -3,7 +3,7 @@
 #include <string.h>
 #include <limits.h>
 
-unsigned u_min (unsigned x, unsigned y) { return (x < y ? x : y); }
+unsigned u_min ( unsigned x, unsigned y ) { return (x < y ? x : y); }
 
 unsigned search( char* char_grid, unsigned* checked, char previous_height, 
     unsigned height, unsigned width,
@@ -28,7 +28,7 @@ unsigned search( char* char_grid, unsigned* checked, char previous_height,
     if ( row == goal_row && col == goal_col ) return steps;
 
 
-    // mark current tile as visited
+    // mark current tile as visited, and record number of steps
     checked[i] = steps;
 
     // search from any orthogonal squares
@@ -46,14 +46,14 @@ unsigned search( char* char_grid, unsigned* checked, char previous_height,
 }
 
 
-int main(int argc, char** argv)
+int main( int argc, char** argv )
 {
 
   // iterators
   unsigned i, j;
 
   // file pointer and input buffer for reading the input file
-  FILE* f_in = fopen(argv[1], "r");
+  FILE* f_in = fopen( argv[1], "r" );
   char line[255];
 
   // get a line of input and count its width (including the newline)
