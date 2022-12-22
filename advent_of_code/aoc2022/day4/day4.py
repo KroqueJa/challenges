@@ -1,7 +1,6 @@
 import sys
 
-p1 = 0
-p2 = 0
+p1 = p2 = 0
 
 with open(sys.argv[1], 'r') as f:
     for line in f:
