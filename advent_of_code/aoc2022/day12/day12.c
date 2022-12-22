@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
-#include <math.h>
 
 unsigned u_min (unsigned x, unsigned y) { return (x < y ? x : y); }
 
