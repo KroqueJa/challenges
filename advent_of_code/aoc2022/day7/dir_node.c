@@ -1,11 +1,10 @@
 #include "dir_node.h"
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-dir_node* create_node( const char* name )
+dir_node* create_dir_node( const char* name )
 {
   // check length of name
   unsigned name_len = strlen( name );
@@ -14,6 +13,7 @@ dir_node* create_node( const char* name )
   char* p_dir_name = (char*)malloc( (name_len + 1) * sizeof( char ) );
   dir_node** p_children = (dir_node**)malloc( DEFAULT_CHILDREN_SZ * sizeof( dir_node* ) );
   strncpy( p_dir_name, name, name_len + 1 );
+  node->visited= false;
   node->dir_size = 0;
   node->allocated_size = DEFAULT_CHILDREN_SZ;
   node->num_children = 0;
@@ -22,13 +22,13 @@ dir_node* create_node( const char* name )
   return node;
 }
 
-void destroy_node( dir_node* node )
+void destroy_dir_node( dir_node* node )
 {
   if ( node->num_children == 0 ) {
     free( node );
     return;
   }
-  for ( int i = 0; i < node->num_children; ++i ) destroy_node( node->children[i] );
+  for ( int i = 0; i < node->num_children; ++i ) destroy_dir_node( node->children[i] );
 }
 
 void add_child( dir_node* parent, dir_node* child )
@@ -43,6 +43,7 @@ void add_child( dir_node* parent, dir_node* child )
   }
   parent->children[parent->num_children] = child;
   parent->num_children++;
+  child->parent = parent;
 
 }
 

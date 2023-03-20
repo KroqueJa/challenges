@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "linked_list.h"
 #include "dir_node.h"
+#include "hashmap.h"
 
 int main( int argc, char** argv ) 
 {
@@ -37,7 +39,11 @@ int main( int argc, char** argv )
   fclose( fp );
 
   /* Solve the problem */
+  /*
   char* it = buffer;
+  int num;
+  dir_node* root = create_node( "/" );
+  dir_node* pwd = root;
 
   it += 7;
 
@@ -47,26 +53,52 @@ int main( int argc, char** argv )
     // are we on a command?
     if ( it[0] == '$' ) {
       if ( it[2] != 'c' ) {
-        // skip `ls` commands, they are implicit
-        while ( *it != '\n' && *it != '\0' ) ++it;
-        continue;
+        // `ls`, we set the node to visited
+        pwd->visited = true;
+        printf( "ls, setting to visited\n" );
+      } else if ( it[5] == '.' ) {
+        // it is, go up one directory
+        pwd = pwd->parent;
+        printf( "Going up, present directory is %s\n", pwd->dir_name );
+      } else {
+        // if not, get the folder name
+        it += 5; // skip '$ cd '
+        len = 0;
+        while ( *it != '\n' ) {
+          ++len;
+          ++it;
+        }
+        strncpy( strbuf, it-len, len );
+        printf( "Descending into %s\n", strbuf );
       }
-      // on a bona fide `cd` command, get the file name
-      // after checking that it's not `..`
-      it += 5; // skip '$ cd '
-      len = 0;
-      while ( *it != '\n' ) {
-        ++len;
-        ++it;
+    } else {
+      // This line contains information about the current directory
+      if ( *it == 'd' ) {
+        it += 4;
+        len = 0;
+        while ( *it != '\n' ) {
+          ++len;
+          ++it;
+        }
+        strncpy( strbuf, it-len, len );
+        printf( "Found directory %s, creating if unknown\n", strbuf );
+      } else {
+        num = atoi( it );
+        printf( "Found %d, adding to pwd total\n", num );
       }
-      strncpy( strbuf, it-len, len+1 );
-      printf( "%s\n", strbuf );
     }
-    while ( *it != '\n' ) ++it;
-  printf( "%s\n", it );
-  ++it;
+    // skip to the next command
+    while ( *it != '\n' && *it != '\0' ) ++it;
+    if ( *it == '\n' ) ++it;
   }
-
+*/
+  char strbuf[64];
+  hashmap* map = hashmap_init( 1 );
+  hashmap_insert( map, "stanky" );
+  hashmap_insert( map, "klanky" );
+  hashmap_insert( map, "pajas" );
+  hashmap_find( map, strbuf, "klanky" );
+  printf( "%s\n", strbuf );
   free( buffer );
 
   return 0;
