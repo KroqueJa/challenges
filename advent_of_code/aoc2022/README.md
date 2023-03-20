@@ -3,45 +3,42 @@
 ## Progress
 ![](https://geps.dev/progress/10)
 
-- [ ] Day 1
-    - [ ] a
-    - [ ] b
-- [ ] Day 1
-    - [ ] a
-    - [ ] b
-- [ ] Day 2
-    - [ ] a
-    - [ ] b
-- [ ] Day 3
-    - [ ] a
-    - [ ] b
-- [ ] Day 4
-    - [ ] a
-    - [ ] b
-- [ ] Day 5
-    - [ ] a
-    - [ ] b
-- [ ] Day 6
-    - [ ] a
-    - [ ] b
+- [x] Day 1
+    - [x] a
+    - [x] b
+- [x] Day 2
+    - [x] a
+    - [x] b
+- [x] Day 3
+    - [x] a
+    - [x] b
+- [x] Day 4
+    - [x] a
+    - [x] b
+- [x] Day 5
+    - [x] a
+    - [x] b
+- [x] Day 6
+    - [x] a
+    - [x] b
 - [ ] Day 7
     - [ ] a
     - [ ] b
-- [ ] Day 8
-    - [ ] a
-    - [ ] b
-- [ ] Day 9
-    - [ ] a
-    - [ ] b
-- [ ] Day 10
-    - [ ] a
-    - [ ] b
+- [x] Day 8
+    - [x] a
+    - [x] b
+- [x] Day 9
+    - [x] a
+    - [x] b
+- [x] Day 10
+    - [x] a
+    - [x] b
 - [ ] Day 11
     - [ ] a
     - [ ] b
-- [ ] Day 12
-    - [ ] a
-    - [ ] b
+- [x] Day 12
+    - [x] a
+    - [x] b
 - [ ] Day 13
     - [ ] a
     - [ ] b
